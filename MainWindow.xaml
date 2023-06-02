@@ -1,0 +1,283 @@
+﻿<Window x:Class="lab8.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:lab8"
+        mc:Ignorable="d"
+        Title="Subtitle Composer" Height="800" Width="1200"
+        MinHeight="480" MinWidth="640"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="boolToVisibility" />
+        <local:TimeSpanToStringConverter x:Key="timeToString" />
+        <local:TextToHeaderConverter x:Key="textToHeader" />
+        <local:TranslationToHeaderConverter x:Key="translationToHeader" />
+
+        <BitmapImage x:Key="PlayImage" UriSource="/Resources/play.png" />
+        <BitmapImage x:Key="PauseImage" UriSource="/Resources/pause.png" />
+        <BitmapImage x:Key="StopImage" UriSource="/Resources/stop.png" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="100" MinHeight="100"/>
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0">
+            <MenuItem Header="File">
+                <MenuItem Header="Open" Click="OpenMenuItem_Click"/>
+                <MenuItem Header="Exit" Click="ExitClick"/>
+            </MenuItem>
+            <MenuItem Header="Subtitle">
+                <MenuItem Header="Open" Click="OpenSubtitlesMenuItem_Click"/>
+                <MenuItem Header="Save" Click="SaveSubtitlesMenuItem_Click"/>
+                <MenuItem Header="Save Translation" Click="SaveTranslationMenuItem_Click"
+                          IsEnabled="{Binding ElementName=TranslationMenuItem, 
+                            Path=IsChecked}"/>
+                <MenuItem Name="TranslationMenuItem" Header="Translation" 
+                          IsCheckable="True" />
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="About" Click="AboutMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid Name="MediaPlayerGrid" Grid.Row="1" 
+              MouseWheel="MediaPlayerGrid_MouseWheel"
+              MouseDown="MediaPlayerGrid_MouseDown">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Rectangle Grid.Row="0" Fill="Black" />
+            <MediaElement Grid.Row="0" Name="Video" 
+                   VerticalAlignment="Center" HorizontalAlignment="Center"
+                   LoadedBehavior="Manual" UnloadedBehavior="Stop"/>
+            <TextBlock Name="SubtitleTextBlock"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Bottom"
+                       Foreground="White"
+                       Background="Black"
+                       Opacity="0.5"
+                       Padding="5"
+                       Margin="4"
+                       FontSize="20"
+                       TextAlignment="Center">
+            </TextBlock>
+            
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Width="25" Height="25" Margin="5" Click="PlayButton_Click">
+                        <Image Source="{StaticResource PlayImage}" 
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
+                    <Button Width="25" Height="25" Margin="5" Click="PauseButton_Click">
+                        <Image Source="{StaticResource PauseImage}" 
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
+                    <Button Width="25" Height="25" Margin="5" Click="StopButton_Click">
+                        <Image Source="{StaticResource StopImage}" 
+                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Name="VideoTime" Grid.Column="1" TextAlignment="Center"
+                           VerticalAlignment="Center"/>
+
+                <Slider Grid.Column="2" Name="VideoTimeSlider" 
+                        Margin="5"
+                        ValueChanged="VideoTimeSlider_ValueChanged"
+                        Thumb.DragStarted="VideoTimeSlider_DragStarted"
+                        Thumb.DragCompleted="VideoTimeSlider_DragCompleted"
+                        Minimum="0" Maximum="1" 
+                        LargeChange="0.2"
+                        VerticalAlignment="Center"
+                        IsMoveToPointEnabled="True"/>
+                <Slider Grid.Column="3" Name="VideoVolumeSlider" 
+                        Margin="5"
+                        ValueChanged="VideoVolumeSlider_ValueChanged"
+                        Width="100"
+                        Minimum="0" Maximum="1"
+                        VerticalAlignment="Center"
+                        IsMoveToPointEnabled="True"
+                        Value="1"/>
+
+            </Grid>
+        </Grid>
+
+        <GridSplitter Grid.Row="2"
+                      HorizontalAlignment="Stretch"
+                      Height="5" />
+
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto">
+            <DataGrid Name="SubtitleDataGrid"
+                      ItemsSource="{Binding}" 
+                      CanUserAddRows="True" 
+                      CanUserSortColumns="False"
+                      AutoGenerateColumns="False"
+                      InitializingNewItem="DataGrid_InitializingNewItem"
+                      SelectionChanged="SubtitleDataGrid_SelectionChanged">
+                <DataGrid.Columns>
+                    <DataGridTextColumn x:Name="ShowTime" Header="Show Time" Width="Auto"
+                                        SortDirection="Ascending">
+                        <DataGridTextColumn.Binding>
+                            <Binding Path="ShowTime" 
+                                     UpdateSourceTrigger="LostFocus" 
+                                     Converter="{StaticResource timeToString}">
+                                <Binding.ValidationRules>
+                                    <local:TimeSpanValidation />
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </DataGridTextColumn.Binding>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Hide Time" Width="Auto">
+                        <DataGridTextColumn.Binding>
+                            <Binding Path="HideTime" 
+                                     UpdateSourceTrigger="LostFocus" 
+                                     Converter="{StaticResource timeToString}">
+                                <Binding.ValidationRules>
+                                    <local:TimeSpanValidation />
+                                </Binding.ValidationRules>
+                            </Binding>
+                        </DataGridTextColumn.Binding>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Text" Width="*"
+                                        Binding="{Binding Text}" />
+                    <DataGridTextColumn Header="Translation" Width="*"
+                                        Visibility="{Binding IsChecked,
+                        Source={x:Reference TranslationMenuItem},
+                        Converter={StaticResource boolToVisibility}}" 
+                                        Binding="{Binding Translation}"/>
+                </DataGrid.Columns>
+
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Add" Click="AddItem_Click" />
+                        <MenuItem Header="Add after" Click="AddAfterItem_Click" />
+                        <MenuItem Header="Delete" Click="DeleteItem_Click" />
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+            </DataGrid>
+        </ScrollViewer>
+
+        <GridSplitter Grid.Row="4"
+                      HorizontalAlignment="Stretch"
+                      Height="5" />
+
+        <Grid MinHeight="100" Grid.Row="5" >
+            <Grid.ColumnDefinitions >
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition>
+                    <ColumnDefinition.Style>
+                        <Style TargetType="ColumnDefinition">
+                            <Setter Property="Width" Value="*"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TranslationMenuItem,
+                                    Path=IsChecked}" Value="False">
+                                    <Setter Property="Width" Value="0" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ColumnDefinition.Style>
+                </ColumnDefinition>
+            </Grid.ColumnDefinitions>
+
+            <GroupBox Grid.Column="0" Padding="6">
+                <StackPanel Orientation="Vertical" >
+                    <StackPanel Margin="5" Orientation="Horizontal" >
+                        <TextBlock Width="50" Margin="0, 0, 5, 0" FontWeight="Bold"> 
+                            Show</TextBlock>
+                        <TextBox Width="100">
+                            <TextBox.Text>
+                                <Binding ElementName="SubtitleDataGrid"
+                                    Path="SelectedItem.ShowTime"
+                                    UpdateSourceTrigger="LostFocus" 
+                                    Converter="{StaticResource timeToString}" >
+                                    <Binding.ValidationRules>
+                                        <local:TimeSpanValidation />
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
+                    </StackPanel>
+                    <StackPanel Margin="5" Orientation="Horizontal">
+                        <TextBlock Width="50" Margin="0, 0, 5, 0" FontWeight="Bold">
+                            Hide</TextBlock>
+                        <TextBox Width="100">
+                            <TextBox.Text>
+                                <Binding ElementName="SubtitleDataGrid"
+                                    Path="SelectedItem.HideTime"
+                                    UpdateSourceTrigger="LostFocus"  
+                                    Converter="{StaticResource timeToString}" >
+                                    <Binding.ValidationRules>
+                                        <local:TimeSpanValidation />
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
+                    </StackPanel>
+                    <StackPanel Margin="5" Orientation="Horizontal">
+                        <TextBlock Width="50" Margin="0, 0, 5, 0" FontWeight="Bold">
+                            Duration</TextBlock>
+                        <TextBox Width="100">
+                            <TextBox.Text>
+                                <Binding ElementName="SubtitleDataGrid"
+                                    Path="SelectedItem.Duration"
+                                    UpdateSourceTrigger="LostFocus" 
+                                    Converter="{StaticResource timeToString}" >
+                                    <Binding.ValidationRules>
+                                        <local:TimeSpanValidation />
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Grid.Column="1" Header="{Binding ElementName=Text, 
+                    Path=Text,
+                    Converter={StaticResource textToHeader}}">
+                <TextBox Name="Text" 
+                         TextAlignment="Center" 
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Text="{Binding ElementName=SubtitleDataGrid,
+                            Path=SelectedItem.Text,
+                            UpdateSourceTrigger=PropertyChanged}"/>
+            </GroupBox>
+            <GroupBox Grid.Column="2" Header="{Binding ElementName=Translation,
+                    Path=Text,
+                    Converter={StaticResource translationToHeader}}"
+                      >
+                <TextBox Name="Translation"
+                         TextAlignment="Center" 
+                         TextWrapping="Wrap"
+                         AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto"
+                         Text="{Binding ElementName=SubtitleDataGrid,
+                            Path=SelectedItem.Translation,
+                            UpdateSourceTrigger=PropertyChanged}"/>
+
+            </GroupBox>
+        </Grid>
+
+
+    </Grid>
+
+
+</Window>
